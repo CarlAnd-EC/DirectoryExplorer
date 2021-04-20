@@ -15,7 +15,7 @@ Description:
 
 const fs = require('fs');
 
-console.time('Inspection time');
+console.time('Inspection Time');
 try {
   switch (process.argv.length) {
     case 2:
@@ -41,7 +41,7 @@ try {
             // console.log(fs.lstatSync(path));
             inspect(path);
           }
-          else throw new Error(`Directory does not exist.`);
+          else throw new Error(`Directory path could not be found.`);
           break;
       }
       break;
@@ -52,7 +52,7 @@ try {
 catch (error) {
   console.error(error);
 }
-console.timeEnd('Inspection time');
+console.timeEnd('Inspection Time');
 
 function inspect(path){
   
