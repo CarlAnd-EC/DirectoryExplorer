@@ -12,15 +12,18 @@ Description:
   5.- Display the number of files or directories removed.
 */
 
-/*
-Notes:
-Warning, do not delete important directories. This action cannot be undone
-Check how “readline” package work
-*/
-
 'use strict';
 
 const fs = require('fs');
+const readline = require('readline');
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+var subdirRemoved = 0;
+var filesRemoved = 0;
 
 try {
   switch (process.argv.length) {
@@ -44,9 +47,9 @@ try {
             }  
           }
           if (fs.existsSync(path)) {
-            remove(path);
+            removeDir(path);
           }
-          else throw new Error(`Directory does not exist.`);
+          else throw new Error(`Directory path could not be found.`);
           break;
       }
       break;
@@ -58,28 +61,72 @@ catch (error) {
   console.error(error);
 }
 
-function remove(path){
-  console.time('removeDir.js');
-  fs.readdir(path, (err, files) => {
-    if(files.length>0){
-      if(files.length<1){
-        console.log(files.toString().replace(/\,/g,'  '));
-      }
-      else{
-        files.forEach(file => {
-          if(file.lastIndexOf('.')<0){
-            file+='/';
-          }
-          console.log(file);
-        });
-      }
-    }
-    else console.log("Directory is empty.");
-  });
-  console.timeEnd('removeDir.js');
-}
-
 function printHelp() {
   console.log("Usage:");
   console.log("node removeDir.js <path>");
+}
+
+function question(query) {
+  return new Promise(resolve => {
+      rl.question(query, resolve);
+  })
+}
+
+async function confirm() {
+  try {
+    const answer = await question('Do you really want to delete this directory? [Y/N]: ');
+    rl.close();
+    switch (answer) {
+      case 'Y': case 'YES': case 'Yes': case 'yes': case 'y':
+        console.log("Confirmed...");
+        return true;
+      case 'N': case 'NO': case 'No': case 'no': case 'n':
+        console.log("Denied...");
+        return false;
+      default:
+        console.log("Invalid answer.");
+        break;
+    }
+  } catch (err) {
+    console.error('Confirmation rejected', err);
+    return;
+  }
+}
+
+async function removeDir(path){
+  const files = fs.readdirSync(path);
+  if (files.length > 0) {
+    let confirmation = await confirm();
+    console.time('Removal Time');
+    if(confirmation){
+      remove(path);
+      console.log("Directory was removed.");
+      console.log(`${subdirRemoved} subdirectories were removed.`);
+      console.log(`${filesRemoved} files were removed.`);
+    }
+    else console.log("Directory was not removed");
+    console.timeEnd('Removal Time');
+  } 
+  else {
+    fs.rmdirSync(path);
+    console.log("Directory was removed.");
+  }
+}
+
+function remove(path) {
+    const files = fs.readdirSync(path)
+    if (files.length > 0) {
+      files.forEach(function(filename) {
+        if (fs.statSync(path + "/" + filename).isDirectory()) {
+          remove(path + "/" + filename)
+          subdirRemoved++;
+        } else {
+          fs.unlinkSync(path + "/" + filename);
+          filesRemoved++;
+        }
+      })
+      fs.rmdirSync(path)
+    } else {
+      fs.rmdirSync(path)
+    }
 }
